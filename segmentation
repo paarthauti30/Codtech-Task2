@@ -1,0 +1,53 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+
+data=pd.read_csv('D:/codtech projects/customer_segm/data/retail_data.csv')
+
+data.head()
+data.isnull().sum()
+data.describe()
+data = data.drop(columns=['CustomerID', 'Gender'])
+data.fillna(data.mean())
+scaler=StandardScaler()
+data_scaled=scaler.fit_transform(data)
+print(data_scaled[:5])
+
+#kmeans clustering 
+interia=[]
+for k in range(1,11):
+    kmeans=KMeans(n_clusters=k , random_state=42)
+    kmeans.fit(data_scaled)
+    interia.append(kmeans.inertia_)
+
+#plot the interia to determine the elbow point
+plt.plot(range(1,11),interia)
+plt.xlabel('number of cluster')
+plt.ylabel('inertia')
+plt.title('Elbow method for optimal K')
+plt.savefig('D:/codtech projects/customer_segm/scripts/number of cluster.png')
+plt.show()
+
+# Based on the plot, select the optimal number of clusters, e.g., K=5
+optimal_k=5
+kmeans=KMeans(n_clusters=optimal_k,random_state=42)
+data['Cluster']=kmeans.fit_predict(data_scaled)
+
+# Visualize the clusters (use first two features for simplicity)
+plt.scatter(data['Annual Income (k$)'], data['Spending Score (1-100)'], c=data['Cluster'], cmap='viridis')
+plt.xlabel('Annual Income (k$)')
+plt.ylabel('Spending Score (1-100)')
+plt.title('Customer Segmentation using K-Means Clustering')
+plt.savefig('D:/codtech projects/customer_segm/scripts/customer segmentation.png')
+plt.show()
+
+segment_analysis = data.groupby('Cluster').agg({
+    'Annual Income (k$)': ['mean', 'std'],
+    'Spending Score (1-100)': ['mean', 'std'],
+    'Cluster': 'count'
+})
+
+print(segment_analysis)
+
+data.to_csv('segmented_customers.csv', index=False)
